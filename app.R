@@ -8,6 +8,8 @@ library(shinylive)
 library(bslib)
 library(thematic)
 
+thematic_shiny(font = "auto")
+
 ui <- fluidPage(
   theme = bs_theme(
     version = 5,
@@ -21,7 +23,7 @@ ui <- fluidPage(
       radioButtons("pink_points", "Colorier les points en rose ?",
                    choices = c("Oui", "Non")),
       
-      selectInput("numeric_var", "Choisir une couleur à filtrer :", 
+      selectInput("color_filter", "Choisir une couleur à filtrer :", 
                   choices = c("D", "E", "F", "G", "H", "I", "J")),
       
       sliderInput("range_price", "Prix maximum :", 
@@ -29,12 +31,33 @@ ui <- fluidPage(
     ),
     
     mainPanel(
-      textOutput("dummy_output") 
+      plotOutput("plot"),
+      DTOutput("table")
     )
   )
 )
 
 server <- function(input, output) {
+  filtered_data <- reactive({
+    diamonds %>%
+      filter(color == input$color_filter, price <= input$range_price[2])
+  })
+  
+  output$plot <- renderPlot({
+    data <- filtered_data()
+    
+    ggplot(data, aes(x = carat, y = price)) +
+      geom_point(color = ifelse(input$pink_points == "Oui", "pink", "blue"), alpha = 0.5) +
+      labs(title = glue("Prix des diamants ({input$color_filter})"),
+           x = "Carat", y = "Prix") +
+      theme_minimal()
+  })
+  
+  output$table <- renderDT({
+    filtered_data() %>%
+      select(carat, cut, color, clarity, depth, table, price) %>%
+      datatable(options = list(pageLength = 10))
+  })
 }
 
 

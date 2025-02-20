@@ -7,12 +7,14 @@ library(shinyjs)
 library(shinylive)
 library(bslib)
 library(thematic)
+library(shinyjs)
 
 thematic_shiny(font = "auto")
 
 data(diamonds)
 
 ui <- fluidPage(
+  useShinyjs(),
   theme = bs_theme(
     version = 5,
     bootswatch = "minty"
@@ -29,7 +31,7 @@ ui <- fluidPage(
                   choices = c("D", "E", "F", "G", "H", "I", "J")),
       
       sliderInput("range_price", "Prix maximum :", 
-                  min = 300, max = 20000, value = c(300, 5000)),
+                  min = 300, max = 20000, value = c(300, 5000), step = 100),
       actionButton("show_notif", "Afficher une notification")
     ),
     
@@ -41,6 +43,17 @@ ui <- fluidPage(
 )
 
 server <- function(input, output, session) {
+  
+  observe({
+    updateSliderInput(session, "range_price", min = 300, value = c(300, input$range_price[2]))
+  })
+  
+  runjs("
+      $('.shiny-notification').css({
+        'background-color': 'white',
+        'color': 'black'
+      });
+    ")
   
   filtered_data <- reactive({
     diamonds %>%
@@ -58,9 +71,14 @@ server <- function(input, output, session) {
     
     ggplot(data, aes(x = carat, y = price)) +
       geom_point(color = ifelse(input$pink_points == "Oui", "pink", "blue"), alpha = 0.5) +
-      labs(title = glue("Prix des diamants ({input$color_filter})"),
-           x = "Carat", y = "Prix") +
-      theme_minimal()
+      labs(title = glue("prix: {input$range_price[2]} & color: {input$color_filter}"),
+           x = "carat", y = "price") +
+      theme_minimal(base_family = "Nanum Gothic Coding") +
+      theme(
+        plot.title = element_text(color = "darkgray"),
+        axis.text = element_text(color = "darkgray"),
+        axis.title = element_text(color = "darkgray")
+      )
   })
   
   output$table <- renderDT({

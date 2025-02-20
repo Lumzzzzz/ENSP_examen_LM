@@ -10,6 +10,8 @@ library(thematic)
 
 thematic_shiny(font = "auto")
 
+data(diamonds)
+
 ui <- fluidPage(
   theme = bs_theme(
     version = 5,
@@ -27,7 +29,8 @@ ui <- fluidPage(
                   choices = c("D", "E", "F", "G", "H", "I", "J")),
       
       sliderInput("range_price", "Prix maximum :", 
-                  min = 300, max = 20000, value = c(300, 5000))
+                  min = 300, max = 20000, value = c(300, 5000)),
+      actionButton("show_notif", "Afficher une notification")
     ),
     
     mainPanel(
@@ -37,10 +40,17 @@ ui <- fluidPage(
   )
 )
 
-server <- function(input, output) {
+server <- function(input, output, session) {
+  
   filtered_data <- reactive({
     diamonds %>%
-      filter(color == input$color_filter, price <= input$range_price[2])
+      filter(color == input$color_filter,
+             price >= input$range_price[1], price <= input$range_price[2])
+  })
+  
+  observeEvent(input$show_notif, {
+    showNotification(glue("Prix: {input$range_price[2]} & Couleur: {input$color_filter}"),
+                     type = "message", duration = 3)
   })
   
   output$plot <- renderPlot({

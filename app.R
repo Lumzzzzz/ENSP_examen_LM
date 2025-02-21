@@ -31,7 +31,8 @@ ui <- fluidPage(
                   choices = c("D", "E", "F", "G", "H", "I", "J")),
       
       sliderInput("range_price", "Prix maximum :", 
-                  min = 300, max = 20000, value = c(300, 5000), step = 100),
+                  min = 300, max = 20000, value = 5000, step = 100),
+      
       actionButton("show_notif", "Afficher une notification")
     ),
     
@@ -44,9 +45,10 @@ ui <- fluidPage(
 
 server <- function(input, output, session) {
   
-  observe({
-    updateSliderInput(session, "range_price", min = 300, value = c(300, input$range_price[2]))
-  })
+  
+  observeEvent(input$show_notif, {
+    showNotification(glue("prix: {input$range_price} & color: {input$color_filter}"),
+                     type = "message", duration = 3)
   
   runjs("
       $('.shiny-notification').css({
@@ -54,30 +56,29 @@ server <- function(input, output, session) {
         'color': 'black'
       });
     ")
+  })
   
   filtered_data <- reactive({
     diamonds %>%
-      filter(color == input$color_filter,
-             price >= input$range_price[1], price <= input$range_price[2])
+      filter(color == input$color_filter, price <= input$range_price)
   })
   
-  observeEvent(input$show_notif, {
-    showNotification(glue("Prix: {input$range_price[2]} & Couleur: {input$color_filter}"),
-                     type = "message", duration = 3)
-  })
   
   output$plot <- renderPlot({
     data <- filtered_data()
     
     ggplot(data, aes(x = carat, y = price)) +
-      geom_point(color = ifelse(input$pink_points == "Oui", "pink", "blue"), alpha = 0.5) +
-      labs(title = glue("prix: {input$range_price[2]} & color: {input$color_filter}"),
+      geom_point(color = ifelse(input$pink_points == "Oui", "pink", "gray20"), alpha = 0.5) +
+      labs(title = glue("prix: {input$range_price} & color: {input$color_filter}"),
            x = "carat", y = "price") +
-      theme_minimal(base_family = "Nanum Gothic Coding") +
+      theme_minimal(base_family = "Consolas") +
       theme(
-        plot.title = element_text(color = "darkgray"),
-        axis.text = element_text(color = "darkgray"),
-        axis.title = element_text(color = "darkgray")
+        plot.title = element_text(color = "gray40"),
+        axis.text = element_text(color = "gray40"),
+        axis.text.x = element_text(size = 8),  
+        axis.text.y = element_text(size = 8),
+        axis.title = element_text(color = "gray40"),
+        panel.background = element_rect(fill = "gray96")
       )
   })
   
